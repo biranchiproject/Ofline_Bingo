@@ -23,8 +23,9 @@ export default function OfflineGame() {
     Array.from({ length: 5 }, () => Array(5).fill(false))
   );
   const [bingoProgress, setBingoProgress] = useState<string[]>([]);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  // 🎲 Generate 1–25 board
+  // 🎲 Generate board
   const generateBoard = () => {
     const nums = Array.from({ length: 25 }, (_, i) => i + 1).sort(
       () => Math.random() - 0.5
@@ -38,7 +39,7 @@ export default function OfflineGame() {
     generateBoard();
   }, []);
 
-  // 🧠 Check win
+  // 🧠 Win logic (rows + cols + diagonals)
   const checkWin = (m: boolean[][]) => {
     let lines = 0;
 
@@ -51,19 +52,20 @@ export default function OfflineGame() {
 
     if (lines >= 5) {
       setGameState("winner");
-      // Play victory song
-      if (victoryAudioRef.current) {
-        victoryAudioRef.current.play().catch(() => {});
-      }
+      victoryAudioRef.current?.play().catch(() => {});
       confetti({ particleCount: 220, spread: 90, origin: { y: 0.6 } });
     }
   };
 
+  // 🔒 PERMANENT MARK
   const onCellClick = (r: number, c: number) => {
     if (gameState === "winner") return;
+    if (marked[r][c]) return; // ❌ unselect not allowed
+
     const copy = marked.map((row) => [...row]);
-    copy[r][c] = !copy[r][c];
+    copy[r][c] = true;
     setMarked(copy);
+    setHasStarted(true);
     checkWin(copy);
   };
 
@@ -79,32 +81,17 @@ export default function OfflineGame() {
   }, [board, marked]);
 
   const restartGame = () => {
+    if (hasStarted && gameState !== "winner") return; // 🔒 reset disabled mid-game
     setMarked(Array.from({ length: 5 }, () => Array(5).fill(false)));
     setBingoProgress([]);
     setGameState("playing");
+    setHasStarted(false);
     generateBoard();
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex animate-neon-cycle overflow-hidden">
+    <div className="min-h-screen bg-black text-white flex overflow-hidden">
       <div className="page-border-glow" />
-
-      {/* LEFT BINGO LETTERS */}
-      <div className="hidden lg:flex flex-col justify-center pl-6 gap-5">
-        {LETTERS.map((l) => (
-          <div
-            key={l}
-            className={`w-20 h-20 flex items-center justify-center text-4xl font-black rounded-xl border-4 neon-letter-glow
-              ${
-                bingoProgress.includes(l)
-                  ? "bg-neon-yellow text-black shadow-[0_0_40px_#ffee00]"
-                  : "text-neon-blue opacity-40"
-              }`}
-          >
-            {l}
-          </div>
-        ))}
-      </div>
 
       {/* MAIN AREA */}
       <div className="flex-1 flex flex-col items-center p-4">
@@ -116,17 +103,20 @@ export default function OfflineGame() {
 
           <div className="text-center">
             <div className="text-neon-blue font-black text-xl">
-              ✨ LETS  PLAY  HAVE  FUN ✨
+              ✨ LETS PLAY HAVE FUN ✨
             </div>
             <div className="text-neon-yellow text-sm">{playerName}</div>
           </div>
 
-          <button onClick={restartGame}>
+          <button
+            onClick={restartGame}
+            disabled={hasStarted && gameState !== "winner"}
+          >
             <RefreshCcw />
           </button>
         </div>
 
-        {/* CENTER BOARD */}
+        {/* BOARD */}
         <motion.div
           animate={{ y: [0, -14, 0] }}
           transition={{ duration: 6, repeat: Infinity }}
@@ -140,23 +130,23 @@ export default function OfflineGame() {
             disabled={gameState === "winner"}
           />
         </motion.div>
-      </div>
 
-      {/* RIGHT BINGO LETTERS (SAME AS LEFT) */}
-      <div className="hidden lg:flex flex-col justify-center pr-6 gap-5">
-        {LETTERS.map((l) => (
-          <div
-            key={`r-${l}`}
-            className={`w-20 h-20 flex items-center justify-center text-4xl font-black rounded-xl border-4 neon-letter-glow
-              ${
-                bingoProgress.includes(l)
-                  ? "bg-neon-yellow text-black shadow-[0_0_40px_#ffee00]"
-                  : "text-neon-blue opacity-40"
-              }`}
-          >
-            {l}
-          </div>
-        ))}
+        {/* BINGO LETTERS BELOW BOARD */}
+        <div className="mt-6 flex justify-center gap-5">
+          {LETTERS.map((l) => (
+            <div
+              key={`bottom-${l}`}
+              className={`w-16 h-16 flex items-center justify-center text-3xl font-black rounded-xl border-4 neon-letter-glow
+                ${
+                  bingoProgress.includes(l)
+                    ? "bg-neon-yellow text-black shadow-[0_0_40px_#ffee00]"
+                    : "text-neon-blue opacity-40"
+                }`}
+            >
+              {l}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* WIN OVERLAY */}
@@ -187,7 +177,7 @@ export default function OfflineGame() {
                 ))}
               </div>
 
-              <NeonButton onClick={restartGame} className="restart-button-glow">
+              <NeonButton onClick={restartGame}>
                 RESTART GAME
               </NeonButton>
             </div>
