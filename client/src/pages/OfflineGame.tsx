@@ -144,9 +144,10 @@ export default function OfflineGame() {
         </div>
 
         {/* FOOTER */}
-        <div className="text-xs text-white/40 mt-2">
-          © Biranchi Creativity • All Rights Reserved
-        </div>
+       <div className="mt-auto py-3 w-full text-center text-xs text-white/40">
+  © Biranchi Creativity • All Rights Reserved
+</div>
+
       </div>
 
       {/* WIN OVERLAY */}
